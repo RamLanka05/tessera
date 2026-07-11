@@ -1,6 +1,13 @@
 package auth
 
-func authMiddleware(next http.Handler) http.Handler {
+
+import (
+//	"fmt"
+	"net/http"
+	"github.com/golang-jwt/jwt/v5"
+	
+)
+func AuthMiddleware(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         tokenStr := r.Header.Get("Authorization")
         if tokenStr == "" {
