@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
  	"tessera/backend/internal/auth"
+	"tessera/backend/internal/storage"
+
 	
 )
 
@@ -22,5 +24,8 @@ func main() {
 		w.Write([]byte(`{"status": "healthy"}`))
 	})))
 
+
+	storage.InitDB()
+	
 	http.ListenAndServe(":8080", mux)
 }

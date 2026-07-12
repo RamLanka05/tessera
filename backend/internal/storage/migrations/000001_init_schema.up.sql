@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS configs (
+    id SERIAL PRIMARY KEY,
+    config_key VARCHAR(255) UNIQUE NOT NULL,
+    config_value JSONB NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

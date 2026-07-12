@@ -1,0 +1,77 @@
+# ==============================================================================
+# Go (Golang) Specifics
+# ==============================================================================
+# Compiled architecture binaries and absolute executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Specific target server binaries (e.g., matching cmd/server architecture)
+backend/cmd/server/server
+backend/cmd/chaos/chaos
+main
+server
+
+# Test binaries and coverage reports
+*.test
+*.out
+c.out
+coverage.txt
+
+# ==============================================================================
+# TypeScript / JavaScript / Frontend (React, Node) Specifics
+# ==============================================================================
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Production build outputs
+dist/
+build/
+.next/
+out/
+
+# TypeScript compilation caching info
+*.tsbuildinfo
+
+# Debug logs and crash reports
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==============================================================================
+# Environment Variables & Secrets 
+# ==============================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# ==============================================================================
+# Operating System & IDE Garbage
+# ==============================================================================
+# Windows specific file properties cache
+Thumbs.db
+desktop.ini
+
+# macOS specific folder configurations
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# JetBrains IDEs (GoLand, WebStorm, IntelliJ)
+.idea/
+*.iws
+
+# Visual Studio Code specific settings
+# (Keep .vscode/extensions.json if you want to share extensions, ignore the rest)
+.vscode/*
+!.vscode/extensions.json
+.history/
