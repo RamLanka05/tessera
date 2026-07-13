@@ -1,0 +1,220 @@
+openapi: 3.0.0
+
+info:
+  title: Config Server API
+  version: 1.0.0
+  description: Distributed configuration management with versioning and rollback
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Config:
+      type: object
+      properties:
+        id:
+          type: integer
+        config_key:
+          type: string
+        config_value:
+          type: object
+        updated_at:
+          type: string
+          format: date-time
+
+    Version:
+      type: object
+      properties:
+        id:
+          type: integer
+        config_id:
+          type: integer
+        parent_version_id:
+          type: integer
+          nullable: true
+        value_json:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+        author:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        status:
+          type: integer
+
+paths:
+  /auth/token:
+    post:
+      summary: Generate JWT token
+      description: Authenticate and receive a short-lived JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - client_id
+                - client_secret
+              properties:
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+      responses:
+        200:
+          description: Token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGc..."
+                  expires_in:
+                    type: integer
+                    example: 300
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /config:
+    get:
+      summary: List all configs
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of configs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Config'
+        401:
+          description: Unauthorized
+
+    post:
+      summary: Create or update a config
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - config_key
+                - config_value
+              properties:
+                config_key:
+                  type: string
+                config_value:
+                  type: object
+      responses:
+        201:
+          description: Config created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+        400:
+          description: Invalid request
+        401:
+          description: Unauthorized
+
+  /config/{name}:
+    get:
+      summary: Get latest config by name
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Config found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+        404:
+          description: Config not found
+        401:
+          description: Unauthorized
+
+  /config/{name}/versions:
+    get:
+      summary: Get version history for a config
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Version history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Version'
+        404:
+          description: Config not found
+        401:
+          description: Unauthorized
+
+  /config/{name}/rollback/{version_id}:
+    post:
+      summary: Rollback config to a previous version
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Rollback successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+        404:
+          description: Config or version not found
+        401:
+          description: Unauthorized

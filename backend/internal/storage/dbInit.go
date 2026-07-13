@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"net/url"
+	"path/filepath"
+	"runtime"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -16,8 +19,17 @@ import (
 func InitDB() *sql.DB {
 	// DSN matches the exact credentials from docker-compose.yml
 
-	err := godotenv.Load(".env")
-	if err != nil {
+	sourceFile := ""
+	if _, file, _, ok := runtime.Caller(0); ok {
+		sourceFile = file
+		repoRoot := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), "..", "..", ".."))
+		envPath := filepath.Join(repoRoot, ".env")
+		if err := godotenv.Load(envPath); err != nil {
+			log.Println("No .env file found, falling back to system environment variables")
+		} else {
+			log.Printf("Loaded environment from %s", envPath)
+		}
+	} else if err := godotenv.Load(".env"); err != nil {
 		log.Println("No .env file found, falling back to system environment variables")
 	}
 
@@ -49,8 +61,11 @@ func InitDB() *sql.DB {
 		log.Fatalf("Could not create migration driver: %v", err)
 	}
 
+	migrationsDir := filepath.Join(filepath.Dir(sourceFile), "migrations")
+	sourceURL := (&url.URL{Scheme: "file", Path: filepath.ToSlash(migrationsDir)}).String()
+
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://internal/storage/migrations",
+		sourceURL,
 		"postgres", driver,
 	)
 	if err != nil {
