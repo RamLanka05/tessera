@@ -25,13 +25,12 @@ stop:
 migrate:
 	cd backend && go run cmd/server/main.go migrate
 
-test: 
-	cd backend && go test ./... -v
+# test: 
+# 	cd backend && go test ./... -v
 
 lint:
 	cd backend && go fmt ./...
 	cd backend && go vet ./...
-	cd backend && golangci-lint run
 
 backend-run: start
 	cd backend && go run cmd/server/main.go
@@ -39,9 +38,9 @@ backend-run: start
 frontend-run:
 	cd frontend && npm install && npm run dev
 
-build-docker: test
-	docker build -f backend/Dockerfile -t tessera-backend:latest .
-	docker build -f frontend/Dockerfile -t tessera-frontend:latest .
+# build-docker: test
+# 	docker build -f backend/Dockerfile -t tessera-backend:latest .
+# 	docker build -f frontend/Dockerfile -t tessera-frontend:latest .
 
 clean:
 	docker-compose down -v

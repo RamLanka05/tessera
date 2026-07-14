@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"net/url"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -41,9 +41,9 @@ func InitDB() *sql.DB {
 	dbname := os.Getenv("DB_NAME")
 
 	//  Construct the connection string dynamically
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", 
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		user, password, host, port, dbname)
-	
+
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("Could not connect to database: %v", err)
