@@ -36,7 +36,7 @@ backend-run: start
 	cd backend && go run cmd/server/main.go
 
 frontend-run:
-	cd frontend && npm install && npm run dev
+	cd frontend/tessera-client && npm install && npm run dev
 
 # build-docker: test
 # 	docker build -f backend/Dockerfile -t tessera-backend:latest .
