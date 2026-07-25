@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"tessera/backend/internal/auth"
 	"tessera/backend/internal/storage"
 )
@@ -10,6 +11,13 @@ import (
 func main() {
 
 	fmt.Println("Starting Tessera High-Performance Engine...")
+
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		db := storage.InitDB()
+		defer db.Close()
+		fmt.Println("Migrations completed. Exiting.")
+		return
+	}
 
 	mux := http.NewServeMux()
 
