@@ -6,6 +6,11 @@ import (
 	"net/http"
 )
 
+type Claims struct {
+	ClientID string
+	jwt.RegisteredClaims
+}
+
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenStr := r.Header.Get("Authorization")
