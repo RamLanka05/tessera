@@ -4,6 +4,7 @@ import (
 	//	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
+	"os"
 )
 
 type Claims struct {
@@ -24,8 +25,12 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Parse and validate JWT
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			return []byte("a-string-secret-at-least-256-bits-long"), nil // In real life, use a secure key
+		secret := os.Getenv("JWT_SECRET") // replace this with RS256 later (Phase 5)
+
+
+		claims := &Claims{}
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
 		})
 		if err != nil || !token.Valid {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
