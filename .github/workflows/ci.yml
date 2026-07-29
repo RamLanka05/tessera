@@ -1,9 +1,7 @@
 name: CI/CD Pipeline
 
 on:
-  push:
-    branches:
-      - main
+  push: {}
   pull_request:
     branches:
       - main
@@ -45,13 +43,13 @@ jobs:
             
 
             - name: Install Dependencies
-              run: cd frontend && npm install
+              run: cd frontend/tessera-client && npm install
               
             - name: Lint
-              run: cd frontend && npm run lint
+              run: cd frontend/tessera-client && npm run lint
             
             - name: Build
-              run: cd frontend && npm run build
+              run: cd frontend/tessera-client && npm run build
             
     docker-build:
         runs-on: ubuntu-latest
