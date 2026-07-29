@@ -1,10 +1,11 @@
 package auth
 
 import (
-	//	"fmt"
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"os"
+	"time"
 )
 
 type Claims struct {
@@ -38,4 +39,23 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func GenerateJWT(clientID string) (string, error) {
+	secret := os.Getenv("JWT_SECRET") // replace this with RS256 later (Phase 5)
+
+	claims := &Claims{
+		ClientID: clientID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+	return tokenString, nil
 }
