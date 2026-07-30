@@ -7,5 +7,6 @@ CREATE TABLE IF NOT EXISTS clients (
 
 INSERT INTO clients (client_id, client_secret) VALUES
     ('client1', 'secret1'),
-    ('client2', 'secret2')
+    ('client2', 'secret2'),
+    ('web-app', 'dev-secret-123')
 ON CONFLICT (client_id) DO NOTHING;

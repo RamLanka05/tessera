@@ -1,25 +1,101 @@
 package main
 
 import (
+	"bytes"
+	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"tessera/backend/internal/auth"
 	"tessera/backend/internal/storage"
 )
 
+type AuthTokenRequest struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+}
+
+type AuthTokenResponse struct {
+	Token     string `json:"token"`
+	ExpiresIn int64  `json:"expires_in"`
+}
+
+type ErrorResponse struct {
+	Message string `json:"error"`
+}
+
+var db *sql.DB
+
+func authTokenHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("authTokenHandler raw body: %s\n", string(body))
+	r.Body = io.NopCloser(bytes.NewReader(body))
+
+	var req AuthTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		fmt.Printf("authTokenHandler decode error: %v\n", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if db == nil {
+		http.Error(w, "Database not initialized", http.StatusInternalServerError)
+		return
+	}
+
+	valid, err := storage.ValidateClient(db, req.ClientID, req.ClientSecret)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Internal server error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("authTokenHandler validation result: client_id=%s valid=%t\n", req.ClientID, valid)
+
+	if !valid {
+		http.Error(w, "Invalid client credentials", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := auth.GenerateJWT(req.ClientID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to generate token: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := AuthTokenResponse{
+		Token:     token,
+		ExpiresIn: 15 * 60, // 15 minutes = 900 seconds
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func main() {
 
 	fmt.Println("Starting Tessera High-Performance Engine...")
 
+	db = storage.InitDB()
+	defer db.Close()
+
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
-		db := storage.InitDB()
-		defer db.Close()
 		fmt.Println("Migrations completed. Exiting.")
 		return
 	}
 
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/v1/auth/token", authTokenHandler)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"message": "Welcome to Tessera!"}`))
@@ -29,7 +105,8 @@ func main() {
 		w.Write([]byte(`{"status": "healthy"}`))
 	})))
 
-	storage.InitDB()
-
-	http.ListenAndServe(":8080", mux)
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		fmt.Fprintf(os.Stderr, "server error: %v\n", err)
+		os.Exit(1)
+	}
 }

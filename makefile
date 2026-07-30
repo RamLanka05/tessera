@@ -1,4 +1,4 @@
-.PHONY: help start stop test lint build-docker clean migrate logs
+.PHONY: help start stop migrate backend-test backend-lint backend-check frontend-install frontend-lint frontend-build frontend-check build-docker ci clean logs
 
 
 help:
@@ -7,11 +7,17 @@ help:
 	@echo "  make start          Start Docker containers (PostgreSQL)"
 	@echo "  make stop           Stop all containers"
 	@echo "  make migrate        Run database migrations"
-	@echo "  make test           Run all tests"
-	@echo "  make lint           Lint backend code"
+	@echo "  make backend-test   Run backend tests"
+	@echo "  make backend-lint   Format and vet backend code"
+	@echo "  make backend-check  Run backend lint + tests"
+	@echo "  make frontend-install Install frontend dependencies"
+	@echo "  make frontend-lint  Lint frontend code"
+	@echo "  make frontend-build Build frontend assets"
+	@echo "  make frontend-check Run frontend lint + build"
 	@echo "  make backend-run    Start backend server (localhost:8080)"
 	@echo "  make frontend-run   Start frontend dev server (localhost:5173)"
 	@echo "  make build-docker   Build Docker images"
+	@echo "  make ci             Run the full local verification flow"
 	@echo "  make clean          Remove Docker containers and volumes"
 	@echo "  make logs           Show Docker logs"
 	@echo ""
@@ -25,12 +31,25 @@ stop:
 migrate:
 	cd backend && go run cmd/server/main.go migrate
 
-# test: 
-# 	cd backend && go test ./... -v
+backend-test:
+	cd backend && go test ./... -v
 
-# lint:
-# 	cd backend && go fmt ./...
-# 	cd backend && go vet ./...
+backend-lint:
+	cd backend && go fmt ./...
+	cd backend && go vet ./...
+
+backend-check: backend-lint backend-test
+
+frontend-install:
+	cd frontend/tessera-client && npm install
+
+frontend-lint:
+	cd frontend/tessera-client && npm run lint
+
+frontend-build:
+	cd frontend/tessera-client && npm run build
+
+frontend-check: frontend-install frontend-lint frontend-build
 
 backend-run: start
 	cd backend && go run cmd/server/main.go
@@ -38,9 +57,11 @@ backend-run: start
 frontend-run:
 	cd frontend/tessera-client && npm install && npm run dev
 
-# build-docker: test
-# 	docker build -f backend/Dockerfile -t tessera-backend:latest .
-# 	docker build -f frontend/Dockerfile -t tessera-frontend:latest .
+build-docker:
+	docker build -t my-backend-image ./backend
+	docker build -t my-frontend-image ./frontend
+
+ci: start migrate backend-check frontend-check build-docker
 
 clean:
 	docker-compose down -v
