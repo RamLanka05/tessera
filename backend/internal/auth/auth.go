@@ -28,7 +28,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		// Parse and validate JWT
 		secret := os.Getenv("JWT_SECRET") // replace this with RS256 later (Phase 5)
 
-
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(secret), nil

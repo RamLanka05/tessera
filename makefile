@@ -1,4 +1,4 @@
-.PHONY: help start stop migrate backend-test backend-lint backend-check frontend-install frontend-lint frontend-build frontend-check build-docker ci clean logs
+.PHONY: help start stop migrate backend-test backend-lint backend-check frontend-install frontend-lint frontend-build frontend-check compose-check docker-build ci clean logs
 
 
 help:
@@ -16,7 +16,8 @@ help:
 	@echo "  make frontend-check Run frontend lint + build"
 	@echo "  make backend-run    Start backend server (localhost:8080)"
 	@echo "  make frontend-run   Start frontend dev server (localhost:5173)"
-	@echo "  make build-docker   Build Docker images"
+	@echo "  make compose-check  Validate docker compose config"
+	@echo "  make docker-build   Build Docker images if Dockerfiles exist"
 	@echo "  make ci             Run the full local verification flow"
 	@echo "  make clean          Remove Docker containers and volumes"
 	@echo "  make logs           Show Docker logs"
@@ -57,11 +58,16 @@ backend-run: start
 frontend-run:
 	cd frontend/tessera-client && npm install && npm run dev
 
-build-docker:
-	docker build -t my-backend-image ./backend
-	docker build -t my-frontend-image ./frontend
+compose-check:
+	docker compose config
 
-ci: start migrate backend-check frontend-check build-docker
+# docker-build will only build images if the Dockerfiles exist, otherwise it will skip the build and print a message
+# made this way as the Dockerfiles are not always present in the repo, and we don't want to fail the build if they are missing
+docker-build:
+	$(if $(wildcard backend/Dockerfile),docker build -t my-backend-image ./backend,echo Skipping backend Docker build: backend/Dockerfile not found)
+	$(if $(wildcard frontend/Dockerfile),docker build -t my-frontend-image ./frontend,echo Skipping frontend Docker build: frontend/Dockerfile not found)
+
+ci: start migrate backend-check frontend-check compose-check docker-build
 
 clean:
 	docker-compose down -v

@@ -6,7 +6,7 @@ import (
 )
 
 func ValidateClient(db *sql.DB, clientID, clientSecret string) (bool, error) {
-	
+
 	var storedSecret string
 	err := db.QueryRow("SELECT client_secret FROM clients WHERE client_id = $1", clientID).Scan(&storedSecret)
 
@@ -18,6 +18,6 @@ func ValidateClient(db *sql.DB, clientID, clientSecret string) (bool, error) {
 		// Database error - return the error
 		return false, fmt.Errorf("database error: %w", err)
 	}
-	
+
 	return storedSecret == clientSecret, nil
 }
