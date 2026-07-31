@@ -24,10 +24,10 @@ help:
 	@echo ""
 
 start:
-	docker-compose up -d
+	docker compose up -d
 
 stop:
-	docker-compose down
+	docker compose down
 
 migrate:
 	cd backend && go run cmd/server/main.go migrate
@@ -70,9 +70,12 @@ docker-build:
 ci: start migrate backend-check frontend-check compose-check docker-build
 
 clean:
-	docker-compose down -v
+	docker compose down -v
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
+
+compose-check:
+	docker compose config
 
 .DEFAULT_GOAL := help
