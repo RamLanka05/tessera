@@ -8,6 +8,7 @@ import (
 	// Add other imports as needed
 )
 
+// Version struct represents a single version of a config
 type Version struct {
 	ID        int
 	ConfigID  int
@@ -18,6 +19,8 @@ type Version struct {
 	IsActive  bool
 }
 
+// Main transactional function to create a new config or update an existing one
+// Returns the new version ID and an error if any
 func CreateConfig(db *sql.DB, configKey string, configValue interface{}, author, message string) (int, error) {
 	tx, err := db.BeginTx(context.Background(), nil)
 	if err != nil {
@@ -68,6 +71,8 @@ func CreateConfig(db *sql.DB, configKey string, configValue interface{}, author,
 	return newVID, nil
 }
 
+// Fetches the active configuration value for a given config key
+// Returns the configuration value as a byte slice and an error if any
 func GetConfig(db *sql.DB, configKey string) ([]byte, error) {
 	var configID int
 	err := db.QueryRow("SELECT id FROM configs where config_key = $1", configKey).Scan(&configID)
@@ -93,6 +98,8 @@ func GetConfig(db *sql.DB, configKey string) ([]byte, error) {
 	return configVal, nil
 }
 
+// Shows all versions of a given config key, including the active version
+// Returns a slice of Version structs and an error if any
 func ListVersions(db *sql.DB, configKey string) ([]Version, error) {
 	var configID int
 	err := db.QueryRow("SELECT id FROM configs WHERE config_key = $1", configKey).Scan(&configID)
@@ -135,6 +142,8 @@ func ListVersions(db *sql.DB, configKey string) ([]Version, error) {
 	return allVersions, nil
 }
 
+// Rolls back the active version of a given config key to a specified version ID
+// Returns the new active version ID and an error if any
 func RollbackConfig(db *sql.DB, configKey string, targetVID int) (int, error) {
 
 	tx, err := db.BeginTx(context.Background(), nil)
