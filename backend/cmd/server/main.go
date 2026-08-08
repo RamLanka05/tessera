@@ -209,7 +209,10 @@ func main() {
 		w.Write([]byte(`{"message": "Welcome to Tessera!"}`))
 	})
 
-	mux.Handle("/api/v1/config", auth.AuthMiddleware(http.HandlerFunc(handleCreateConfig)))
+	mux.Handle("POST /api/v1/config", auth.AuthMiddleware(http.HandlerFunc(handleCreateConfig)))
+	mux.Handle("GET /api/v1/config/{name}", auth.AuthMiddleware(http.HandlerFunc(handleGetConfig)))
+	mux.Handle("GET /api/v1/config/{name}/versions", auth.AuthMiddleware(http.HandlerFunc(handleListVersions)))
+	mux.Handle("POST /api/v1/config/{name}/rollback/{vid}", auth.AuthMiddleware(http.HandlerFunc(handleRollbackConfig)))
 
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		fmt.Fprintf(os.Stderr, "server error: %v\n", err)

@@ -170,10 +170,10 @@ func RollbackConfig(db *sql.DB, configKey string, targetVID int) (int, error) {
 		return 0, fmt.Errorf("version ID %d does not exist for config key %s", targetVID, configKey)
 	}
 
-	err = tx.QueryRow(
+	_, err = tx.Exec(
 		`UPDATE active_pointers SET active_vid = $1, last_updated = CURRENT_TIMESTAMP WHERE config_id = $2`,
 		targetVID, configID,
-	).Scan()
+	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to update active pointer: %w", err)
 	}
