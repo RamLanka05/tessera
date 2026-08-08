@@ -37,6 +37,18 @@ type CreateConfigResponse struct {
 	VersionID int `json:"version_id"`
 }
 
+type GetConfigResponse struct {
+	ConfigValue interface{} `json:"config_val"`
+}
+
+type GetVersionsResponse struct {
+	Versions []storage.Version `json:"versions"`
+}
+
+type RollbackResponse struct {
+	VersionID int `json:"version_id"`
+}
+
 var db *sql.DB
 
 func authTokenHandler(w http.ResponseWriter, r *http.Request) {
@@ -121,6 +133,60 @@ func handleCreateConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	configVal, err := storage.GetConfig(db, name)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get config: %v", err), http.StatusNotFound)
+		return
+	}
+
+	// Unmarshal the []byte into an interface{}
+	var val interface{}
+	if err := json.Unmarshal(configVal, &val); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to unmarshal config value: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(GetConfigResponse{ConfigValue: val})
+}
+
+func handleListVersions(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	allVers, err := storage.ListVersions(db, name)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to list versions: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"versions": allVers})
+}
+
+func handleRollbackConfig(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	vidStr := r.PathValue("vid")
+	
+	var vid int
+	_, err := fmt.Sscanf(vidStr, "%d", &vid)
+	if err != nil {
+		http.Error(w, "Invalid version ID", http.StatusBadRequest)
+		return
+	}
+	
+	newVID, err := storage.RollbackConfig(db, name, vid)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to rollback: %v", err), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"version_id": newVID})
 }
 
 func main() {
