@@ -28,7 +28,7 @@ type ErrorResponse struct {
 
 type CreateConfigRequest struct {
 	ConfigKey   string      `json:"config_key"`
-	ConfigValue interface{} `json:"config_value"`
+	ConfigValue interface{} `json:"config_val"`
 	Author      string      `json:"author"`
 	Message     string      `json:"message"`
 }
@@ -143,7 +143,7 @@ func main() {
 		w.Write([]byte(`{"message": "Welcome to Tessera!"}`))
 	})
 
-	mux.Handle("POST /api/v1/config", auth.AuthMiddleware(http.HandlerFunc(handleCreateConfig)))
+	mux.Handle("/api/v1/config", auth.AuthMiddleware(http.HandlerFunc(handleCreateConfig)))
 
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		fmt.Fprintf(os.Stderr, "server error: %v\n", err)

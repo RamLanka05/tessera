@@ -47,19 +47,19 @@ func CreateConfig(db *sql.DB, configKey string, configValue interface{}, author,
 
 	var newVID int
 	err = tx.QueryRow(
-		"INSERT INTO versions (config_id, config_value, author, message) VALUES ($1, $2, $3, $4) RETURNING id",
+		"INSERT INTO versions (config_id, config_val, author, message) VALUES ($1, $2, $3, $4) RETURNING id",
 		configID, configValueJSON, author, message,
 	).Scan(&newVID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert version: %w", err)
 	}
 
-	err = tx.QueryRow(
+	_, err = tx.Exec(
 		`INSERT INTO active_pointers (config_id, active_vid, last_updated)
 		VALUES ($1, $2, CURRENT_TIMESTAMP)
 		ON CONFLICT (config_id) DO UPDATE SET active_vid = $2, last_updated = CURRENT_TIMESTAMP`,
 		configID, newVID,
-	).Scan()
+	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to update active pointer: %w", err)
 	}
@@ -90,11 +90,11 @@ func GetConfig(db *sql.DB, configKey string) ([]byte, error) {
 	}
 
 	var configVal []byte
-	err = db.QueryRow("SELECT config_value FROM versions WHERE id = $1", activeVID).Scan(&configVal)
+	err = db.QueryRow("SELECT config_val FROM versions WHERE id = $1", activeVID).Scan(&configVal)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query config value: %w", err)
 	}
-	
+
 	return configVal, nil
 }
 
@@ -117,7 +117,7 @@ func ListVersions(db *sql.DB, configKey string) ([]Version, error) {
 	}
 
 	rows, err := db.Query(
-		`SELECT id, config_id, config_value, timestamp, author, message 
+		`SELECT id, config_id, config_val, timestamp, author, message 
 		FROM versions WHERE config_id = $1 ORDER BY timestamp DESC`, configID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query versions: %w", err)
