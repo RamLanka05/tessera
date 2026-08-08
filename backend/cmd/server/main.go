@@ -26,6 +26,17 @@ type ErrorResponse struct {
 	Message string `json:"error"`
 }
 
+type CreateConfigRequest struct {
+	ConfigKey   string      `json:"config_key"`
+	ConfigValue interface{} `json:"config_value"`
+	Author      string      `json:"author"`
+	Message     string      `json:"message"`
+}
+
+type CreateConfigResponse struct {
+	VersionID int `json:"version_id"`
+}
+
 var db *sql.DB
 
 func authTokenHandler(w http.ResponseWriter, r *http.Request) {
@@ -81,6 +92,37 @@ func authTokenHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func handleCreateConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req CreateConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	if req.ConfigKey == "" || req.ConfigValue == nil || req.Author == "" || req.Message == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	currVID, err := storage.CreateConfig(db, req.ConfigKey, req.ConfigValue, req.Author, req.Message)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create config: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := CreateConfigResponse{
+		VersionID: currVID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func main() {
 
 	fmt.Println("Starting Tessera High-Performance Engine...")
@@ -101,9 +143,7 @@ func main() {
 		w.Write([]byte(`{"message": "Welcome to Tessera!"}`))
 	})
 
-	mux.Handle("/api/v1/config", auth.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status": "healthy"}`))
-	})))
+	mux.Handle("POST /api/v1/config", auth.AuthMiddleware(http.HandlerFunc(handleCreateConfig)))
 
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		fmt.Fprintf(os.Stderr, "server error: %v\n", err)
