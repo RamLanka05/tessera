@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import LoginPage from './LoginPage';
+import Dashboard from './Dashboard';
 import './App.css';
 
 function App() {
@@ -18,14 +19,7 @@ function App() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Tessera Dashboard</h1>
-      <p>Token: {token.slice(0, 20)}...</p>
-      <button onClick={handleLogout}>Logout</button>
-      {/* Tomorrow: Add config management here */}
-    </div>
-  );
+  return <Dashboard token={token} onLogout={handleLogout} />;
 }
 
 export default App;
