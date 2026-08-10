@@ -51,6 +51,21 @@ type RollbackResponse struct {
 
 var db *sql.DB
 
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func authTokenHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -171,20 +186,20 @@ func handleListVersions(w http.ResponseWriter, r *http.Request) {
 func handleRollbackConfig(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	vidStr := r.PathValue("vid")
-	
+
 	var vid int
 	_, err := fmt.Sscanf(vidStr, "%d", &vid)
 	if err != nil {
 		http.Error(w, "Invalid version ID", http.StatusBadRequest)
 		return
 	}
-	
+
 	newVID, err := storage.RollbackConfig(db, name, vid)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to rollback: %v", err), http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"version_id": newVID})
 }
@@ -214,7 +229,7 @@ func main() {
 	mux.Handle("GET /api/v1/config/{name}/versions", auth.AuthMiddleware(http.HandlerFunc(handleListVersions)))
 	mux.Handle("POST /api/v1/config/{name}/rollback/{vid}", auth.AuthMiddleware(http.HandlerFunc(handleRollbackConfig)))
 
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(":8080", corsMiddleware(mux)); err != nil {
 		fmt.Fprintf(os.Stderr, "server error: %v\n", err)
 		os.Exit(1)
 	}
