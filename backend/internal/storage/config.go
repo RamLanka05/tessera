@@ -8,6 +8,13 @@ import (
 	// Add other imports as needed
 )
 
+type ConfigStore interface {
+	CreateConfig(configKey string, configValue interface{}, author, message string) (int, error)
+	RollbackConfig(configKey string, targetVID int) (int, error)	
+	GetConfig(configKey string) ([]byte, error)
+	ListVersions(configKey string) ([]Version, error)
+}
+
 // Version struct represents a single version of a config
 type Version struct {
 	ID        int
@@ -183,4 +190,28 @@ func RollbackConfig(db *sql.DB, configKey string, targetVID int) (int, error) {
 	}
 
 	return targetVID, nil
+}
+
+type PostgresStore struct {
+	db *sql.DB
+}
+
+func newPostgresStore(db *sql.DB) *PostgresStore {
+	return &PostgresStore{db: db}
+}
+
+func (p *PostgresStore) CreateConfig(configKey string, configValue interface{}, author, message string) (int, error) {
+	return CreateConfig(p.db, configKey, configValue, author, message)
+}
+
+func (p *PostgresStore) RollbackConfig(configKey string, targetVID int) (int, error) {
+	return RollbackConfig(p.db, configKey, targetVID)
+}
+
+func (p *PostgresStore) GetConfig(configKey string) ([]byte, error) {
+	return GetConfig(p.db, configKey)
+}
+
+func (p *PostgresStore) ListVersions(configKey string) ([]Version, error) {
+	return ListVersions(p.db, configKey)
 }
