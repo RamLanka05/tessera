@@ -7,4 +7,6 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.19.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/lib/pq v1.12.3 // indirect
+	go.etcd.io/raft/v3 v3.7.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
