@@ -1,54 +1,46 @@
 package raft
 
-// import (
-// 	"encoding/json"
-// 	"fmt"
-// 	"log"
+import (
+	"encoding/json"
+	"fmt"
 
-// 	"tessera/backend/internal/storage"
-// )
+	"tessera/backend/internal/storage"
+)
 
-// type FSM struct {
-// 	storage storage.ConfigStore // your Phase 1 storage interface
-// }
+// FSM (Finite State Machine) applies committed Raft log entries
+// to the local storage layer.
+type FSM struct {
+	storage storage.ConfigStore
+}
 
-// func NewFSM(store storage.ConfigStore) *FSM {
-// 	return &FSM{storage: store}
-// }
+// NewFSM creates a new FSM backed by the given ConfigStore
+func NewFSM(store storage.ConfigStore) *FSM {
+	return &FSM{storage: store}
+}
 
-// // Apply takes a committed Raft entry (as []byte), unmarshals it to Command,
-// // and executes the corresponding storage operation.
-// func (f *FSM) Apply(data []byte) error {
-// 	var cmd Command
-// 	if err := json.Unmarshal(data, &cmd); err != nil {
-// 		return fmt.Errorf("unmarshal command: %w", err)
-// 	}
+// Apply takes a committed Raft log entry (raw bytes), unmarshals it
+// into a Command, and executes the corresponding storage operation.
+func (f *FSM) Apply(data []byte) error {
+	var cmd Command
+	if err := json.Unmarshal(data, &cmd); err != nil {
+		return fmt.Errorf("unmarshal command: %w", err)
+	}
 
-// 	switch cmd.Op {
-// 	case OpCreate:
-// 		// ??? call f.storage.CreateConfig with the right args
-// 		// reminder: CreateConfig(db, configKey, configValue, author, message) (int, error)
-// 		// but you don't have db here — your storage layer needs a method signature
-// 		// that doesn't require passing db as an arg each time.
-// 		// Question for you: does your Phase 1 storage.ConfigStore interface already
-// 		// hide the db pointer? Or do you need to refactor it?
+	switch cmd.Op {
+	case OpCreate:
+		_, err := f.storage.CreateConfig(cmd.ConfigKey, cmd.ConfigValue, cmd.Author, cmd.Message)
+		if err != nil {
+			return fmt.Errorf("create config: %w", err)
+		}
 
-// 	case OpRollback:
-// 		// ??? similar logic for RollbackConfig
+	case OpRollback:
+		_, err := f.storage.RollbackConfig(cmd.ConfigKey, cmd.TargetVID)
+		if err != nil {
+			return fmt.Errorf("rollback config: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown op: %s", cmd.Op)
+	}
 
-// 	default:
-// 		return fmt.Errorf("unknown op: %s", cmd.Op)
-// 	}
-
-// 	return nil
-// }
-
-// // Snapshot and Restore are required by raft.FSM but we'll use MemoryStorage for now.
-// // Stub them out — we'll implement persistent snapshots later.
-// func (f *FSM) Snapshot() (raft.FSMSnapshot, error) {
-// 	return nil, nil // not yet
-// }
-
-// func (f *FSM) Restore(snapshot raft.FSMSnapshot) error {
-// 	return nil // not yet
-// }
+	return nil
+}
