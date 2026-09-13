@@ -32,10 +32,6 @@ func NewRaftNode(id uint64, fsm *FSM) *RaftNode {
 		MaxInflightMsgs: 256,
 	}
 
-	// ??? start the node — single-peer cluster for now.
-	// look at raft.StartNode's signature: what does the second
-	// argument (peers []raft.Peer) need to contain for a
-	// single-node cluster where this node IS the only peer?
 	node := raft.StartNode(c, []raft.Peer{{ID: id}})
 
 	return &RaftNode{
@@ -68,10 +64,6 @@ func (rn *RaftNode) Run() {
 			}
 
 			// 3. Apply rd.CommittedEntries to the FSM.
-			// ??? loop over rd.CommittedEntries — what do you check
-			// before calling fsm.Apply on an entry's Data? (hint: think
-			// about EntryConfChange vs EntryNormal, and empty Data on
-			// leader-election no-op entries)
 			for _, entry := range rd.CommittedEntries {
 				if entry.GetType() != raftpb.EntryNormal || len(entry.Data) == 0 {
 					continue
