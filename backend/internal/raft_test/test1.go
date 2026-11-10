@@ -19,7 +19,8 @@ func main() {
 	fsm := raft.NewFSM(store)
 
 	// Build and start the single-node RaftNode.
-	node := raft.NewRaftNode(1, fsm)
+	network := &raft.InprocNetwork{}
+	node := raft.NewRaftNode(1, []uint64{1}, network.Register(1), fsm)
 
 	// Run the Ready loop in the background — it needs to keep
 	// ticking/processing continuously.

@@ -16,11 +16,11 @@ type RaftNode struct {
 	storage *raft.MemoryStorage
 	fsm     *FSM
 	id      uint64
+	transport Transport
 }
 
-// NewRaftNode creates and starts a single raft node.
-// For now, peers is just this one node — no real cluster yet.
-func NewRaftNode(id uint64, fsm *FSM) *RaftNode {
+// NewRaftNode creates and starts a Raft node with the supplied cluster peers.
+func NewRaftNode(id uint64, peers []uint64, transport Transport, fsm *FSM) *RaftNode {
 	storage := raft.NewMemoryStorage()
 
 	c := &raft.Config{
@@ -32,13 +32,18 @@ func NewRaftNode(id uint64, fsm *FSM) *RaftNode {
 		MaxInflightMsgs: 256,
 	}
 
-	node := raft.StartNode(c, []raft.Peer{{ID: id}})
+	raftPeers := make([]raft.Peer, 0, len(peers))
+	for _, peerID := range peers {
+		raftPeers = append(raftPeers, raft.Peer{ID: peerID})
+	}
+	node := raft.StartNode(c, raftPeers)
 
 	return &RaftNode{
 		node:    node,
 		storage: storage,
 		fsm:     fsm,
 		id:      id,
+		transport: transport,
 	}
 }
 
@@ -57,11 +62,8 @@ func (rn *RaftNode) Run() {
 			//    just need to be durable before we ack them)
 			rn.storage.Append(rd.Entries)
 
-			// 2. Send rd.Messages to peers over the network.
-			//    No transport yet — just log them for now.
-			for _, msg := range rd.Messages {
-				log.Printf("would send message: %+v\n", msg)
-			}
+			// 2. Send after persistence and before applying commits.
+			rn.transport.Send(rd.Messages)
 
 			// 3. Apply rd.CommittedEntries to the FSM.
 			for _, entry := range rd.CommittedEntries {
@@ -76,6 +78,11 @@ func (rn *RaftNode) Run() {
 
 			// 4. Signal we're done processing this Ready batch.
 			rn.node.Advance()
+
+		case msg := <-rn.transport.Recv():
+			if err := rn.node.Step(context.Background(), msg); err != nil {
+				log.Printf("error stepping raft message: %v", err)
+			}
 		}
 	}
 }
