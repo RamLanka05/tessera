@@ -61,22 +61,26 @@ func (t *inprocTransport) Send(msgs []raftpb.Message) {
 		return
 	}
 
-	for _, msg := range msgs {
-		if _, disconnected := t.network.disconnected[msg.From]; disconnected {
+	for i := range msgs {
+		msg := &msgs[i]
+		if msg.From == nil || msg.To == nil {
 			continue
 		}
-		if _, disconnected := t.network.disconnected[msg.To]; disconnected {
+		if _, disconnected := t.network.disconnected[*msg.From]; disconnected {
+			continue
+		}
+		if _, disconnected := t.network.disconnected[*msg.To]; disconnected {
 			continue
 		}
 
-		inbox, ok := t.network.inboxes[msg.To]
+		inbox, ok := t.network.inboxes[*msg.To]
 		if !ok {
 			continue
 		}
 
 		// Dropping messages is safe because Raft retries messages after loss.
 		select {
-		case inbox <- msg:
+		case inbox <- *msg:
 		default:
 		}
 	}

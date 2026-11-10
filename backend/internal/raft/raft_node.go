@@ -12,10 +12,10 @@ import (
 // RaftNode wraps an etcd/raft Node with everything needed to run
 // the Ready loop and apply committed entries to the FSM.
 type RaftNode struct {
-	node    raft.Node
-	storage *raft.MemoryStorage
-	fsm     *FSM
-	id      uint64
+	node      raft.Node
+	storage   *raft.MemoryStorage
+	fsm       *FSM
+	id        uint64
 	transport Transport
 }
 
@@ -39,10 +39,10 @@ func NewRaftNode(id uint64, peers []uint64, transport Transport, fsm *FSM) *Raft
 	node := raft.StartNode(c, raftPeers)
 
 	return &RaftNode{
-		node:    node,
-		storage: storage,
-		fsm:     fsm,
-		id:      id,
+		node:      node,
+		storage:   storage,
+		fsm:       fsm,
+		id:        id,
 		transport: transport,
 	}
 }
@@ -63,7 +63,13 @@ func (rn *RaftNode) Run() {
 			rn.storage.Append(rd.Entries)
 
 			// 2. Send after persistence and before applying commits.
-			rn.transport.Send(rd.Messages)
+			messages := make([]raftpb.Message, 0, len(rd.Messages))
+			for _, message := range rd.Messages {
+				if message != nil {
+					messages = append(messages, *message)
+				}
+			}
+			rn.transport.Send(messages)
 
 			// 3. Apply rd.CommittedEntries to the FSM.
 			for _, entry := range rd.CommittedEntries {
@@ -79,8 +85,11 @@ func (rn *RaftNode) Run() {
 			// 4. Signal we're done processing this Ready batch.
 			rn.node.Advance()
 
-		case msg := <-rn.transport.Recv():
-			if err := rn.node.Step(context.Background(), msg); err != nil {
+		case msg, ok := <-rn.transport.Recv():
+			if !ok {
+				return
+			}
+			if err := rn.node.Step(context.Background(), &msg); err != nil {
 				log.Printf("error stepping raft message: %v", err)
 			}
 		}
