@@ -65,13 +65,7 @@ func (rn *RaftNode) Run() {
 			rn.storage.Append(rd.Entries)
 
 			// 2. Send after persistence and before applying commits.
-			messages := make([]raftpb.Message, 0, len(rd.Messages))
-			for _, message := range rd.Messages {
-				if message != nil {
-					messages = append(messages, *message)
-				}
-			}
-			rn.transport.Send(messages)
+			rn.transport.Send(rd.Messages)
 
 			// 3. Apply rd.CommittedEntries to the FSM.
 			for _, entry := range rd.CommittedEntries {
@@ -91,7 +85,7 @@ func (rn *RaftNode) Run() {
 			if !ok {
 				return
 			}
-			if err := rn.node.Step(context.Background(), &msg); err != nil {
+			if err := rn.node.Step(context.Background(), msg); err != nil {
 				log.Printf("error stepping raft message: %v", err)
 			}
 		}
