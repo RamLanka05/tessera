@@ -19,6 +19,8 @@ type RaftNode struct {
 	transport Transport
 }
 
+func (rn *RaftNode) Leader() uint64 { return rn.node.Status().Lead }
+
 // NewRaftNode creates and starts a Raft node with the supplied cluster peers.
 func NewRaftNode(id uint64, peers []uint64, transport Transport, fsm *FSM) *RaftNode {
 	storage := raft.NewMemoryStorage()
