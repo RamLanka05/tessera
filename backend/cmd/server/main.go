@@ -50,6 +50,7 @@ type RollbackResponse struct {
 }
 
 var db *sql.DB
+var store *storage.PostgresStore // Initialize your storage layer with the database connection
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +137,7 @@ func handleCreateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currVID, err := storage.CreateConfig(db, req.ConfigKey, req.ConfigValue, req.Author, req.Message)
+	currVID, err := store.CreateConfig(req.ConfigKey, req.ConfigValue, req.Author, req.Message)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to create config: %v", err), http.StatusInternalServerError)
 		return
@@ -152,7 +153,7 @@ func handleCreateConfig(w http.ResponseWriter, r *http.Request) {
 
 func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	configVal, err := storage.GetConfig(db, name)
+	configVal, err := store.GetConfig(name)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to get config: %v", err), http.StatusNotFound)
@@ -172,7 +173,7 @@ func handleGetConfig(w http.ResponseWriter, r *http.Request) {
 
 func handleListVersions(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	allVers, err := storage.ListVersions(db, name)
+	allVers, err := store.ListVersions(name)
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to list versions: %v", err), http.StatusInternalServerError)
@@ -194,7 +195,7 @@ func handleRollbackConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newVID, err := storage.RollbackConfig(db, name, vid)
+	newVID, err := store.RollbackConfig(name, vid)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to rollback: %v", err), http.StatusInternalServerError)
 		return
@@ -210,6 +211,8 @@ func main() {
 
 	db = storage.InitDB()
 	defer db.Close()
+
+	store = storage.NewPostgresStore(db)
 
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		fmt.Println("Migrations completed. Exiting.")
